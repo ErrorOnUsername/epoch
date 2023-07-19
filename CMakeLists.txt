@@ -2,11 +2,11 @@ cmake_minimum_required( VERSION 3.5 )
 project( epoch )
 
 set( ED_SRCS
+	code/draw_gl.cc
 	code/main.cc
+	code/window.cc
 )
 
-
-include_directories( SYSTEM . )
 
 add_executable( ${CMAKE_PROJECT_NAME} ${ED_SRCS} )
 
