@@ -1,8 +1,20 @@
 #pragma once
 
 
-void window_init( int width, int height, char const* title );
+enum WindowResult {
+	WindowResult_Success,
+	WindowResult_GLFWInitFailed,
+	WindowResult_WindowCreateFailed,
+	WindowResult_ContextCreateFailed,
+	WindowResult_Count,
+};
+
+WindowResult window_init( int width, int height, char const* title );
 void window_deinit();
 
+void window_poll_events();
+void window_swap_buffers();
 bool window_should_close();
 void window_set_title( char const* title );
+
+char const* window_result_as_str( WindowResult result );

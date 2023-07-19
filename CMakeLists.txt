@@ -7,6 +7,9 @@ include_directories( SYSTEM third_party/stb_image )
 
 add_subdirectory( third_party )
 
+set( CMAKE_EXPORT_COMPILE_COMMANDS On )
+set( CMAKE_CXX_STANDARD 20 )
+
 set( ED_SRCS
 	code/draw_gl.cc
 	code/main.cc
