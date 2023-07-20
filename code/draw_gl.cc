@@ -1,4 +1,5 @@
 #include "draw_gl.hh"
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 
@@ -44,6 +45,7 @@ static char const* s_default_frag_shader = "#version 400 core\n"
                                            "    {\n"
                                            "        out_color = vec4( pass_uv, 0.0, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv );\n"
                                            "    }\n"
+                                           "    out_color = vec4( 1.0, 0.0, 0.0, 1.0 );"
                                            "}\n";
 
 
@@ -124,6 +126,8 @@ struct QuadVertex {
 	int       texture_slot;
 };
 
+static_assert( sizeof( QuadVertex ) == 9 * 4 );
+
 static size_t     s_quad_push_idx = 0;
 static QuadVertex s_batch_quad_pool[MAX_QUAD_COUNT * 4];
 static uint32_t*  s_batch_quad_indices = nullptr;
@@ -145,15 +149,15 @@ void renderer_init()
 		s_batch_quad_indices[( 6 * i ) + 5] = ( 4 * i ) + 0;
 	}
 
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_vertex_buffer );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t), s_batch_quad_indices, GL_STATIC_DRAW );
-
 	s_main_shader_id = create_shader_program( "shaders/vs_main_text.glsl", "shaders/fs_main_text.glsl" );
 
 	glGenBuffers( 1, &s_main_vertex_buffer );
 	glGenBuffers( 1, &s_main_index_buffer );
 
 	s_main_vertex_array  = create_vertex_array( s_main_vertex_buffer, s_main_index_buffer );
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_index_buffer );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t), s_batch_quad_indices, GL_STATIC_DRAW );
 }
 
 
@@ -172,7 +176,7 @@ void renderer_clear( float r, float g, float b )
 {
 	glClearColor( r, g, b, 1.0f );
 
-	glClear( GL_COLOR_BUFFER_BIT );
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
 
@@ -200,14 +204,16 @@ void immediate_flush()
 	size_t verts_size = s_quad_push_idx * sizeof( QuadVertex );
 	size_t idxs_size  = ( ( s_quad_push_idx / 4 ) * 6 ) * sizeof( uint32_t );
 
+	glUseProgram( s_main_shader_id );
+
 	glBindBuffer( GL_ARRAY_BUFFER, s_main_vertex_buffer );
 	glBufferData( GL_ARRAY_BUFFER, verts_size, (float*)s_batch_quad_pool, GL_DYNAMIC_DRAW );
 
-	glUseProgram( s_main_shader_id );
 	glBindVertexArray( s_main_vertex_array );
+	glBindBuffer( GL_ARRAY_BUFFER, s_main_vertex_buffer );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_index_buffer );
 
-	glDrawElements( GL_TRIANGLES, ( s_quad_push_idx / 4 ) * 6, GL_UNSIGNED_INT, nullptr );
+	glDrawElements( GL_TRIANGLES, (GLsizei)( ( s_quad_push_idx / 4 ) * 6 ), GL_UNSIGNED_INT, nullptr );
 }
 
 
@@ -252,24 +258,26 @@ static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_b
 	size_t offset = 0;
 
 	glEnableVertexAttribArray( 0 ); // POSITION (vec3)
-	glVertexAttribPointer( 0, 3, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, false, sizeof( QuadVertex ), (const void*)( offset ) );
 
 	offset += 3 * 4; // vec3 is 3 4-byte floats
 
 	glEnableVertexAttribArray( 1 ); // UV (vec2)
-	glVertexAttribPointer( 0, 2, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, false, sizeof( QuadVertex ), (const void*)( offset ) );
 
 	offset += 2 * 4; // vec2 is 2 4-byte floats
 
 	glEnableVertexAttribArray( 2 ); // COLOR (vec3)
-	glVertexAttribPointer( 0, 3, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+	glVertexAttribPointer( 2, 3, GL_FLOAT, false, sizeof( QuadVertex ), (const void*)( offset ) );
 
 	offset += 3 * 4; // vec3 is 3 4-byte floats
 
-	glEnableVertexAttribArray( 2 ); // TEXTURE_SLOT(int)
-	glVertexAttribIPointer( 0, 1, GL_INT, 0, (const void*)( offset ) );
+	glEnableVertexAttribArray( 3 ); // TEXTURE_SLOT(int)
+	glVertexAttribIPointer( 3, 1, GL_INT, sizeof( QuadVertex ), (const void*)( offset ) );
 
 	offset += 4; // int is a 32-bit integer
+
+	assert( offset == sizeof( QuadVertex ) );
 
 	return varr_id;
 }

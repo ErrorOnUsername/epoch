@@ -25,7 +25,7 @@ int main()
 		// Draw UI
 		immediate_begin( (float)DEFAULT_WIDTH / DEFAULT_HEIGHT );
 
-		immediate_push_rect( 1.0f, 1.0f, 1.0f, 0.5f, 0.01f );
+		immediate_push_rect( 3.0f, 3.0f, 1.0f, 0.5f, 0.01f );
 
 		immediate_flush();
 
