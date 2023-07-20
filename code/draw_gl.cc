@@ -4,6 +4,8 @@
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "util.hh"
 
@@ -87,7 +89,7 @@ static int compile_shader( GLenum shader_type, char const* path )
 }
 
 
-static int create_shader_program( char const* vert_path, char const* frag_path )
+static uint32_t create_shader_program( char const* vert_path, char const* frag_path )
 {
 	int vert_id = compile_shader( GL_VERTEX_SHADER, vert_path );
 	int frag_id = compile_shader( GL_FRAGMENT_SHADER, frag_path );
@@ -108,7 +110,10 @@ static int create_shader_program( char const* vert_path, char const* frag_path )
 }
 
 
-static int s_main_shader_id = -1;
+static uint32_t s_main_shader_id     = 0;
+static uint32_t s_main_vertex_buffer = 0;
+static uint32_t s_main_index_buffer  = 0;
+static uint32_t s_main_vertex_array  = 0;
 
 
 static constexpr size_t MAX_QUAD_COUNT = 10000;
@@ -119,18 +124,47 @@ struct QuadVertex {
 	int       texture_slot;
 };
 
+static size_t     s_quad_push_idx = 0;
 static QuadVertex s_batch_quad_pool[MAX_QUAD_COUNT * 4];
+static uint32_t*  s_batch_quad_indices = nullptr;
+
+
+static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_buffer_id );
 
 
 void renderer_init()
 {
+	s_batch_quad_indices = (uint32_t*)malloc( MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t) );
+	for ( uint32_t i = 0; i < MAX_QUAD_COUNT; i++ )
+	{
+		s_batch_quad_indices[( 6 * i ) + 0] = ( 4 * i ) + 0;
+		s_batch_quad_indices[( 6 * i ) + 1] = ( 4 * i ) + 1;
+		s_batch_quad_indices[( 6 * i ) + 2] = ( 4 * i ) + 2;
+		s_batch_quad_indices[( 6 * i ) + 3] = ( 4 * i ) + 2;
+		s_batch_quad_indices[( 6 * i ) + 4] = ( 4 * i ) + 3;
+		s_batch_quad_indices[( 6 * i ) + 5] = ( 4 * i ) + 0;
+	}
+
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_vertex_buffer );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t), s_batch_quad_indices, GL_STATIC_DRAW );
+
 	s_main_shader_id = create_shader_program( "shaders/vs_main_text.glsl", "shaders/fs_main_text.glsl" );
+
+	glGenBuffers( 1, &s_main_vertex_buffer );
+	glGenBuffers( 1, &s_main_index_buffer );
+
+	s_main_vertex_array  = create_vertex_array( s_main_vertex_buffer, s_main_index_buffer );
 }
 
 
 void renderer_deinit()
 {
 	glDeleteProgram( s_main_shader_id );
+	glDeleteBuffers( 1, &s_main_vertex_buffer );
+	glDeleteBuffers( 1, &s_main_index_buffer );
+	glDeleteVertexArrays( 1, &s_main_vertex_array );
+
+	free( (void*)s_batch_quad_indices );
 }
 
 
@@ -142,12 +176,101 @@ void renderer_clear( float r, float g, float b )
 }
 
 
-void immediate_begin()
+void immediate_begin( float aspect_ratio )
 {
+	s_quad_push_idx = 0;
+
+	float zoom = 10.0f;
+	glm::mat4 proj_mat = glm::ortho( -aspect_ratio * zoom, aspect_ratio * zoom, -zoom, zoom, -5.0f, 5.0f );
+
+	glUseProgram( s_main_shader_id );
+
+	int location = glGetUniformLocation( s_main_shader_id, "u_proj_matrix" );
+	if ( location != -1 )
+	{
+		glUniformMatrix4fv( location, 1, GL_FALSE, (float const*)glm::value_ptr( proj_mat ) );
+	}
 }
 
 
 void immediate_flush()
 {
+	if ( s_quad_push_idx == 0 ) return;
+
+	size_t verts_size = s_quad_push_idx * sizeof( QuadVertex );
+	size_t idxs_size  = ( ( s_quad_push_idx / 4 ) * 6 ) * sizeof( uint32_t );
+
+	glBindBuffer( GL_ARRAY_BUFFER, s_main_vertex_buffer );
+	glBufferData( GL_ARRAY_BUFFER, verts_size, (float*)s_batch_quad_pool, GL_DYNAMIC_DRAW );
+
+	glUseProgram( s_main_shader_id );
+	glBindVertexArray( s_main_vertex_array );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_index_buffer );
+
+	glDrawElements( GL_TRIANGLES, ( s_quad_push_idx / 4 ) * 6, GL_UNSIGNED_INT, nullptr );
+}
+
+
+void immediate_push_rect( float width, float height, float r, float g, float b )
+{
+	constexpr glm::vec3 pos_mapping_table[4] =
+	{
+		{ 0.0f, 0.0f, 0.0f },
+		{ 1.0f, 0.0f, 0.0f },
+		{ 1.0f, 1.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f },
+	};
+
+	constexpr glm::vec2 uv_mapping_table[4] =
+	{
+		{ 0.0f, 0.0f },
+		{ 1.0f, 0.0f },
+		{ 1.0f, 1.0f },
+		{ 0.0f, 1.0f },
+	};
+
+	for ( size_t i = 0; i < 4; i++ )
+	{
+		s_batch_quad_pool[s_quad_push_idx].position     = { pos_mapping_table[i].x * width, pos_mapping_table[i].y * height, pos_mapping_table[i].z };
+		s_batch_quad_pool[s_quad_push_idx].uv           = uv_mapping_table[i];
+		s_batch_quad_pool[s_quad_push_idx].color        = { r, g, b };
+		s_batch_quad_pool[s_quad_push_idx].texture_slot = 0;
+
+		s_quad_push_idx++;
+	}
+}
+
+
+static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_buffer_id )
+{
+	uint32_t varr_id;
+	glGenVertexArrays( 1, &varr_id );
+
+	glBindVertexArray( varr_id );
+	glBindBuffer( GL_ARRAY_BUFFER, vertex_buffer_id );
+
+	size_t offset = 0;
+
+	glEnableVertexAttribArray( 0 ); // POSITION (vec3)
+	glVertexAttribPointer( 0, 3, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+
+	offset += 3 * 4; // vec3 is 3 4-byte floats
+
+	glEnableVertexAttribArray( 1 ); // UV (vec2)
+	glVertexAttribPointer( 0, 2, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+
+	offset += 2 * 4; // vec2 is 2 4-byte floats
+
+	glEnableVertexAttribArray( 2 ); // COLOR (vec3)
+	glVertexAttribPointer( 0, 3, GL_FLOAT, false, sizeof(QuadVertex), (const void*)( offset ) );
+
+	offset += 3 * 4; // vec3 is 3 4-byte floats
+
+	glEnableVertexAttribArray( 2 ); // TEXTURE_SLOT(int)
+	glVertexAttribIPointer( 0, 1, GL_INT, 0, (const void*)( offset ) );
+
+	offset += 4; // int is a 32-bit integer
+
+	return varr_id;
 }
 

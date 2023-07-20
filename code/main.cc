@@ -22,6 +22,13 @@ int main()
 
 		renderer_clear( 0.18, 0.18, 0.18 );
 
+		// Draw UI
+		immediate_begin( (float)DEFAULT_WIDTH / DEFAULT_HEIGHT );
+
+		immediate_push_rect( 1.0f, 1.0f, 1.0f, 0.5f, 0.01f );
+
+		immediate_flush();
+
 		window_swap_buffers();
 	}
 
