@@ -25,7 +25,7 @@ int main()
 		// Draw UI
 		immediate_begin( window_get_width(), window_get_height() );
 
-		immediate_push_rect( { 20.0f, 20.0f, 0.0f }, { 9.0f, 18.0f }, { 0.0f, 0.0f, 0.0f } );
+		immediate_push_rect( { 20.0f, 20.0f, 0.0f }, { 9.0f, 18.0f }, { 0.8f, 0.3f, 0.02f } );
 
 		immediate_flush();
 

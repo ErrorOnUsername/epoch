@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util.hh"
 
 enum WindowResult {
 	WindowResult_Success,
@@ -18,5 +19,6 @@ bool window_should_close();
 void window_set_title( char const* title );
 float window_get_width();
 float window_get_height();
+Vec2 window_get_scale();
 
 char const* window_result_as_str( WindowResult result );

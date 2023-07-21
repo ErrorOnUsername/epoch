@@ -103,6 +103,15 @@ float window_get_height()
 }
 
 
+Vec2 window_get_scale()
+{
+	float xscale, yscale;
+	glfwGetWindowContentScale( s_window, &xscale, &yscale );
+
+	return { xscale, yscale };
+}
+
+
 static_assert( WindowResult_Count == 4 );
 static char const* s_window_result_strings[WindowResult_Count] =
 {

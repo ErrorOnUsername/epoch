@@ -8,7 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "util.hh"
+#include "window.hh"
 
 
 static char const* s_default_vert_shader = "#version 400 core\n"
@@ -218,6 +218,13 @@ void immediate_flush()
 
 void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 {
+	Vec2 scale = window_get_scale();
+
+	pos.x *= scale.x;
+	pos.y *= scale.y;
+	size.x *= scale.x;
+	size.y *= scale.y;
+
 	s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { 0.0f, 0.0f };
 	s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
