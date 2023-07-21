@@ -23,9 +23,9 @@ int main()
 		renderer_clear( 0.18, 0.18, 0.18 );
 
 		// Draw UI
-		immediate_begin( (float)DEFAULT_WIDTH / DEFAULT_HEIGHT );
+		immediate_begin( window_get_width(), window_get_height() );
 
-		immediate_push_rect( 3.0f, 3.0f, 1.0f, 0.5f, 0.01f );
+		immediate_push_rect( { 20.0f, 20.0f, 0.0f }, { 9.0f, 18.0f }, { 0.0f, 0.0f, 0.0f } );
 
 		immediate_flush();
 

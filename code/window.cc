@@ -79,8 +79,27 @@ bool window_should_close()
 	return glfwWindowShouldClose( s_window );
 }
 
+
 void window_set_title( char const* title )
 {
+	glfwSetWindowTitle( s_window, title );
+}
+
+
+float window_get_width()
+{
+	int width = 1;
+	glfwGetFramebufferSize( s_window, &width, nullptr );
+
+	return (float)width;
+}
+
+float window_get_height()
+{
+	int height = 1;
+	glfwGetFramebufferSize( s_window, nullptr, &height );
+
+	return (float)height;
 }
 
 

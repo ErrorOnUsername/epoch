@@ -16,5 +16,7 @@ void window_poll_events();
 void window_swap_buffers();
 bool window_should_close();
 void window_set_title( char const* title );
+float window_get_width();
+float window_get_height();
 
 char const* window_result_as_str( WindowResult result );

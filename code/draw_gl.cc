@@ -45,7 +45,6 @@ static char const* s_default_frag_shader = "#version 400 core\n"
                                            "    {\n"
                                            "        out_color = vec4( pass_uv, 0.0, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv );\n"
                                            "    }\n"
-                                           "    out_color = vec4( 1.0, 0.0, 0.0, 1.0 );"
                                            "}\n";
 
 
@@ -180,12 +179,12 @@ void renderer_clear( float r, float g, float b )
 }
 
 
-void immediate_begin( float aspect_ratio )
+void immediate_begin( float width, float height )
 {
 	s_quad_push_idx = 0;
 
-	float zoom = 10.0f;
-	glm::mat4 proj_mat = glm::ortho( -aspect_ratio * zoom, aspect_ratio * zoom, -zoom, zoom, -5.0f, 5.0f );
+	float zoom = 1.0f;
+	glm::mat4 proj_mat = glm::ortho( 0.0f, width * zoom, 0.0f, height * zoom, -5.0f, 5.0f );
 
 	glUseProgram( s_main_shader_id );
 
@@ -217,33 +216,29 @@ void immediate_flush()
 }
 
 
-void immediate_push_rect( float width, float height, float r, float g, float b )
+void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 {
-	constexpr glm::vec3 pos_mapping_table[4] =
-	{
-		{ 0.0f, 0.0f, 0.0f },
-		{ 1.0f, 0.0f, 0.0f },
-		{ 1.0f, 1.0f, 0.0f },
-		{ 0.0f, 1.0f, 0.0f },
-	};
+	s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
+	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { 0.0f, 0.0f };
+	s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
+	s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = 0;
 
-	constexpr glm::vec2 uv_mapping_table[4] =
-	{
-		{ 0.0f, 0.0f },
-		{ 1.0f, 0.0f },
-		{ 1.0f, 1.0f },
-		{ 0.0f, 1.0f },
-	};
+	s_batch_quad_pool[s_quad_push_idx + 1].position     = { pos.x + size.x, pos.y, pos.z };
+	s_batch_quad_pool[s_quad_push_idx + 1].uv           = { 1.0f, 0.0f };
+	s_batch_quad_pool[s_quad_push_idx + 1].color        = { color.r, color.g, color.b };
+	s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = 0;
 
-	for ( size_t i = 0; i < 4; i++ )
-	{
-		s_batch_quad_pool[s_quad_push_idx].position     = { pos_mapping_table[i].x * width, pos_mapping_table[i].y * height, pos_mapping_table[i].z };
-		s_batch_quad_pool[s_quad_push_idx].uv           = uv_mapping_table[i];
-		s_batch_quad_pool[s_quad_push_idx].color        = { r, g, b };
-		s_batch_quad_pool[s_quad_push_idx].texture_slot = 0;
+	s_batch_quad_pool[s_quad_push_idx + 2].position     = { pos.x + size.x, pos.y + size.y, pos.z };
+	s_batch_quad_pool[s_quad_push_idx + 2].uv           = { 1.0f, 1.0f };
+	s_batch_quad_pool[s_quad_push_idx + 2].color        = { color.r, color.g, color.b };
+	s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = 0;
 
-		s_quad_push_idx++;
-	}
+	s_batch_quad_pool[s_quad_push_idx + 3].position     = { pos.x, pos.y + size.y, pos.z };
+	s_batch_quad_pool[s_quad_push_idx + 3].uv           = { 0.0f, 1.0f };
+	s_batch_quad_pool[s_quad_push_idx + 3].color        = { color.r, color.g, color.b };
+	s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = 0;
+
+	s_quad_push_idx += 4;
 }
 
 
