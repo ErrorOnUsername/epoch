@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <stb_image.h>
 
 #include "window.hh"
 
@@ -133,6 +134,7 @@ static uint32_t*  s_batch_quad_indices = nullptr;
 
 
 static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_buffer_id );
+static uint32_t load_texture( char const* path );
 
 
 void renderer_init()
@@ -282,5 +284,22 @@ static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_b
 	assert( offset == sizeof( QuadVertex ) );
 
 	return varr_id;
+}
+
+
+static uint32_t s_fallback_image[4] = { 0xff0000ff, 0xffffffff, 0xffffffff, 0xff0000ff };
+
+
+static uint32_t load_font_texture( char const* path )
+{
+	uint32_t tex_id = 0;
+
+	uint8_t* bitmap_data = (uint8_t*)s_fallback_image;
+	char const* font_data = read_entire_file( path );
+	if ( font_data )
+	{
+	}
+
+	return tex_id;
 }
 
