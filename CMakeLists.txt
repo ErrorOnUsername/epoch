@@ -5,6 +5,7 @@ include_directories( SYSTEM third_party/glad/include )
 include_directories( SYSTEM third_party/glfw/include )
 include_directories( SYSTEM third_party/glm )
 include_directories( SYSTEM third_party/stb_image )
+include_directories( SYSTEM third_party/stb_truetype )
 
 add_subdirectory( third_party )
 

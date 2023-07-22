@@ -18,7 +18,7 @@ void main()
 	}
 	else
 	{
-		out_color = vec4( pass_color, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv );
+		out_color = vec4( pass_color, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv ).a;
 	}
 }
 
