@@ -20,7 +20,7 @@ set( ED_SRCS
 
 
 add_executable( ${CMAKE_PROJECT_NAME} ${ED_SRCS} )
-target_link_libraries( ${CMAKE_PROJECT_NAME} glfw glad stb_image )
+target_link_libraries( ${CMAKE_PROJECT_NAME} glfw glad stb_image stb_truetype )
 
 add_custom_target( run
 	COMMAND ./build/epoch
