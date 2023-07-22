@@ -26,7 +26,6 @@ int main()
 		immediate_begin( window_get_width(), window_get_height() );
 
 		immediate_push_rect( { 20.0f, 20.0f, 0.0f }, { 9.0f, 18.0f }, { 0.8f, 0.3f, 0.02f } );
-		immediate_push_text( "haha", { 40.0f, 40.0f, 0.0f }, { 16.0f, 32.0f }, { 1.0f, 1.0f, 1.0f } );
 
 		immediate_flush();
 

@@ -8,7 +8,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
-#include <stb_truetype.h>
 
 #include "window.hh"
 
@@ -136,14 +135,7 @@ static uint32_t*  s_batch_quad_indices = nullptr;
 static uint32_t s_code_font_textures[FontStyle_Count];
 
 
-#define FONT_ATLAS_SIZE 512
-static uint8_t s_fallback_image[4] = { 0x7f, 0xff, 0xff, 0x7f };
-static stbtt_bakedchar s_stbtt_char_data[96]; // ASCII [32..127) ' ' - '~'
-
-
 static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_buffer_id );
-static uint32_t load_font_texture( char const* path );
-static void font_convert_glyph_quad( char msg, Vec3* pos, Vec2* size );
 
 
 void renderer_init()
@@ -169,7 +161,7 @@ void renderer_init()
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_index_buffer );
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t), s_batch_quad_indices, GL_STATIC_DRAW );
 
-	s_code_font_textures[FontStyle_Regular] = load_font_texture( "fonts/jet_brains_mono/fonts/ttf/JetBrainsMono-Regular.ttf" );
+	s_code_font_textures[FontStyle_Regular] = 0;
 }
 
 
@@ -234,15 +226,9 @@ void immediate_flush()
 }
 
 
-static inline void push_textured_quad( Vec3 pos, Vec2 size, Vec3 color, uint32_t tex_id, int slot )
+void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 {
 	Vec2 scale = window_get_scale();
-
-	if ( slot > 0 )
-	{
-		glBindTexture( GL_TEXTURE_2D, tex_id );
-		glActiveTexture( GL_TEXTURE0 + ( (uint32_t)slot - 1 ) );
-	}
 
 	pos.x *= scale.x;
 	pos.y *= scale.y;
@@ -252,73 +238,24 @@ static inline void push_textured_quad( Vec3 pos, Vec2 size, Vec3 color, uint32_t
 	s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { 0.0f, 0.0f };
 	s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = slot;
+	s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = 0;
 
 	s_batch_quad_pool[s_quad_push_idx + 1].position     = { pos.x + size.x, pos.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 1].uv           = { 1.0f, 0.0f };
 	s_batch_quad_pool[s_quad_push_idx + 1].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = slot;
+	s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = 0;
 
 	s_batch_quad_pool[s_quad_push_idx + 2].position     = { pos.x + size.x, pos.y + size.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 2].uv           = { 1.0f, 1.0f };
 	s_batch_quad_pool[s_quad_push_idx + 2].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = slot;
+	s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = 0;
 
 	s_batch_quad_pool[s_quad_push_idx + 3].position     = { pos.x, pos.y + size.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 3].uv           = { 0.0f, 1.0f };
 	s_batch_quad_pool[s_quad_push_idx + 3].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = slot;
+	s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = 0;
 
 	s_quad_push_idx += 4;
-}
-
-
-void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
-{
-	push_textured_quad( pos, size, color, 0, 0 );
-}
-
-
-void immediate_push_text( char const* msg, Vec3 pos, Vec2 size, Vec3 color )
-{
-	float advance = 15.0f;
-
-	glBindTexture( GL_TEXTURE_2D, s_code_font_textures[FontStyle_Regular] );
-	glActiveTexture( GL_TEXTURE0 );
-
-	while ( *msg )
-	{
-		float x = 0.0f;
-		float y = 0.0f;
-
-		stbtt_aligned_quad q;
-		stbtt_GetBakedQuad( s_stbtt_char_data, FONT_ATLAS_SIZE, FONT_ATLAS_SIZE, *msg - 32, &x, &y, &q, 1 );
-
-		s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
-		s_batch_quad_pool[s_quad_push_idx + 0].uv           = { q.s0, q.t1 };
-		s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
-		s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = 1;
-
-		s_batch_quad_pool[s_quad_push_idx + 1].position     = { pos.x + size.x, pos.y, pos.z };
-		s_batch_quad_pool[s_quad_push_idx + 1].uv           = { q.s1, q.t1 };
-		s_batch_quad_pool[s_quad_push_idx + 1].color        = { color.r, color.g, color.b };
-		s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = 1;
-
-		s_batch_quad_pool[s_quad_push_idx + 2].position     = { pos.x + size.x, pos.y + size.y, pos.z };
-		s_batch_quad_pool[s_quad_push_idx + 2].uv           = { q.s1, q.t0 };
-		s_batch_quad_pool[s_quad_push_idx + 2].color        = { color.r, color.g, color.b };
-		s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = 1;
-
-		s_batch_quad_pool[s_quad_push_idx + 3].position     = { pos.x, pos.y + size.y, pos.z };
-		s_batch_quad_pool[s_quad_push_idx + 3].uv           = { q.s0, q.t0 };
-		s_batch_quad_pool[s_quad_push_idx + 3].color        = { color.r, color.g, color.b };
-		s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = 1;
-
-		pos.x += advance;
-		s_quad_push_idx += 4;
-
-		msg++;
-	}
 }
 
 
@@ -358,64 +295,9 @@ static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_b
 }
 
 
-static uint8_t* get_raw_font_bitmap( char const* path, bool* out_success )
-{
-	uint8_t* font_ttf_data = (uint8_t*)read_entire_file( path );
-	if ( !font_ttf_data )
-	{
-		*out_success = false;
-		return s_fallback_image;
-	}
-
-	uint8_t* font_bitmap_data = (uint8_t*)malloc( FONT_ATLAS_SIZE * FONT_ATLAS_SIZE );
-
-	stbtt_BakeFontBitmap(
-		font_ttf_data,
-		0,
-		32.0f,
-		font_bitmap_data,
-		FONT_ATLAS_SIZE,
-		FONT_ATLAS_SIZE,
-		32,
-		96,
-		s_stbtt_char_data );
-
-	free( (void*)font_ttf_data );
-
-	*out_success = true;
-	return font_bitmap_data;
-}
-
-
 static uint32_t load_font_texture( char const* path )
 {
 	uint32_t tex_id = 0;
-
-	bool success;
-	uint8_t* font_bitmap_data = get_raw_font_bitmap( path, &success );
-	uint32_t size = success ? FONT_ATLAS_SIZE : 2;
-
-	glGenTextures( 1, &tex_id );
-	glBindTexture( GL_TEXTURE_2D, tex_id );
-	glTexImage2D(
-		GL_TEXTURE_2D,
-		0,
-		GL_ALPHA,
-		size,
-		size,
-		0,
-		GL_ALPHA,
-		GL_UNSIGNED_BYTE,
-		font_bitmap_data );
-
-	if ( success ) free( (void*)font_bitmap_data );
-
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
 	return tex_id;
 }

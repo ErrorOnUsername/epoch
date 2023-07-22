@@ -1,11 +1,11 @@
 cmake_minimum_required( VERSION 3.5 )
 project( epoch )
 
+include_directories( SYSTEM third_party/freetype/include )
 include_directories( SYSTEM third_party/glad/include )
 include_directories( SYSTEM third_party/glfw/include )
 include_directories( SYSTEM third_party/glm )
 include_directories( SYSTEM third_party/stb_image )
-include_directories( SYSTEM third_party/stb_truetype )
 
 add_subdirectory( third_party )
 
@@ -21,7 +21,7 @@ set( ED_SRCS
 
 
 add_executable( ${CMAKE_PROJECT_NAME} ${ED_SRCS} )
-target_link_libraries( ${CMAKE_PROJECT_NAME} glfw glad stb_image stb_truetype )
+target_link_libraries( ${CMAKE_PROJECT_NAME} glfw glad stb_image freetype )
 
 add_custom_target( run
 	COMMAND ./build/epoch
