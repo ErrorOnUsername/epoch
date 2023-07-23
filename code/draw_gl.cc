@@ -10,6 +10,7 @@
 #include <stb_image.h>
 
 #include "window.hh"
+#include "font.hh"
 
 
 static char const* s_default_vert_shader = "#version 400 core\n"
@@ -132,7 +133,7 @@ static size_t     s_quad_push_idx = 0;
 static QuadVertex s_batch_quad_pool[MAX_QUAD_COUNT * 4];
 static uint32_t*  s_batch_quad_indices = nullptr;
 
-static uint32_t s_code_font_textures[FontStyle_Count];
+static FontAtlas s_main_atlas;
 
 
 static uint32_t create_vertex_array( uint32_t vertex_buffer_id, uint32_t index_buffer_id );
@@ -161,7 +162,12 @@ void renderer_init()
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, s_main_index_buffer );
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, MAX_QUAD_COUNT * 4 * 6 * sizeof(uint32_t), s_batch_quad_indices, GL_STATIC_DRAW );
 
-	s_code_font_textures[FontStyle_Regular] = 0;
+	bool atlas_init_succeeded = init_font_atlas( &s_main_atlas, "fonts/jet_brains_mono/fonts/ttf/JetBrainsMono-Regular.ttf" );
+	if ( !atlas_init_succeeded )
+	{
+		fprintf( stderr, "Could not initialize the font atlas!" );
+		exit( 1 );
+	}
 }
 
 
@@ -172,10 +178,7 @@ void renderer_deinit()
 	glDeleteBuffers( 1, &s_main_index_buffer );
 	glDeleteVertexArrays( 1, &s_main_vertex_array );
 
-	for ( uint32_t i = 0; i < FontStyle_Count; i++ )
-	{
-		glDeleteTextures( 1, &s_code_font_textures[i] );
-	}
+	glDeleteTextures( 1, &s_main_atlas.texture );
 
 	free( (void*)s_batch_quad_indices );
 }
@@ -226,7 +229,7 @@ void immediate_flush()
 }
 
 
-void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
+static void immediate_push_textured_rect( Vec3 pos, Vec2 size, Vec3 color, Vec2 uv_bottom_left, Vec2 uv_top_right, int texture_slot )
 {
 	Vec2 scale = window_get_scale();
 
@@ -236,26 +239,80 @@ void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 	size.y *= scale.y;
 
 	s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
-	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { 0.0f, 0.0f };
+	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { uv_bottom_left.x, uv_bottom_left.y };
 	s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = 0;
+	s_batch_quad_pool[s_quad_push_idx + 0].texture_slot = texture_slot;
 
 	s_batch_quad_pool[s_quad_push_idx + 1].position     = { pos.x + size.x, pos.y, pos.z };
-	s_batch_quad_pool[s_quad_push_idx + 1].uv           = { 1.0f, 0.0f };
+	s_batch_quad_pool[s_quad_push_idx + 1].uv           = { uv_top_right.x, uv_bottom_left.y };
 	s_batch_quad_pool[s_quad_push_idx + 1].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = 0;
+	s_batch_quad_pool[s_quad_push_idx + 1].texture_slot = texture_slot;
 
 	s_batch_quad_pool[s_quad_push_idx + 2].position     = { pos.x + size.x, pos.y + size.y, pos.z };
-	s_batch_quad_pool[s_quad_push_idx + 2].uv           = { 1.0f, 1.0f };
+	s_batch_quad_pool[s_quad_push_idx + 2].uv           = { uv_top_right.x, uv_top_right.y };
 	s_batch_quad_pool[s_quad_push_idx + 2].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = 0;
+	s_batch_quad_pool[s_quad_push_idx + 2].texture_slot = texture_slot;
 
 	s_batch_quad_pool[s_quad_push_idx + 3].position     = { pos.x, pos.y + size.y, pos.z };
-	s_batch_quad_pool[s_quad_push_idx + 3].uv           = { 0.0f, 1.0f };
+	s_batch_quad_pool[s_quad_push_idx + 3].uv           = { uv_bottom_left.x, uv_top_right.y };
 	s_batch_quad_pool[s_quad_push_idx + 3].color        = { color.r, color.g, color.b };
-	s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = 0;
+	s_batch_quad_pool[s_quad_push_idx + 3].texture_slot = texture_slot;
 
 	s_quad_push_idx += 4;
+}
+
+
+void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
+{
+	immediate_push_textured_rect(
+		pos,
+		size,
+		color,
+		{ 0.0f, 0.0f },
+		{ 1.0f, 1.0f },
+		0 );
+}
+
+
+void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
+{
+	Vec2 shifted_pos;
+	Vec2 bottom_left;
+	Vec2 top_right;
+	Vec2 size;
+
+	while ( *text )
+	{
+		char c = *text;
+		if ( c < 32 || c > 126 )
+		{
+			c = '?'; // TODO: Support non-ASCII characters
+		}
+
+		GlyphMetric metric = s_main_atlas.metrics[c];
+		size = metric.bitmap_size;
+		size.y *= -1;
+
+		shifted_pos.x = pos.x + metric.bitmap_top_left.x;
+		shifted_pos.y = -pos.y - metric.bitmap_top_left.y;
+
+		pos.x += metric.advance.x;
+		pos.y += metric.advance.y;
+
+		bottom_left = Vec2 { metric.tex_off_x, 0.0f };
+		top_right.x = bottom_left.x + ( metric.bitmap_size.x / (float)s_main_atlas.width );
+		top_right.y = bottom_left.y + ( metric.bitmap_size.y / (float)s_main_atlas.height );
+
+		immediate_push_textured_rect(
+			{ shifted_pos.x, -shifted_pos.y, 0.0f },
+			size,
+			color,
+			bottom_left,
+			top_right,
+			1 );
+
+		text++;
+	}
 }
 
 

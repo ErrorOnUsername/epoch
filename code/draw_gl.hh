@@ -17,3 +17,4 @@ void immediate_begin( float width, float height );
 void immediate_flush();
 
 void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color );
+void immediate_push_text( Vec3 pos, Vec3 color, char const* text );

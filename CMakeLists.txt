@@ -14,6 +14,7 @@ set( CMAKE_CXX_STANDARD 20 )
 
 set( ED_SRCS
 	code/draw_gl.cc
+	code/font.cc
 	code/main.cc
 	code/util.cc
 	code/window.cc
