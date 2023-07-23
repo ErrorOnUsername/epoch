@@ -45,7 +45,7 @@ static char const* s_default_frag_shader = "#version 400 core\n"
                                            "    }\n"
                                            "    else\n"
                                            "    {\n"
-                                           "        out_color = vec4( pass_uv, 0.0, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv );\n"
+                                           "        out_color = vec4( pass_uv, 0.0, 1.0 ) * texture( u_textures[pass_texture_slot - 1], pass_uv ).r;\n"
                                            "    }\n"
                                            "}\n";
 
