@@ -88,12 +88,12 @@ bool init_font_atlas( FontAtlas* atlas, char const* path )
 			return false;
 		}
 
-		atlas->metrics[i].advance.x         = ft_face->glyph->advance.x >> 6;
-		atlas->metrics[i].advance.y         = ft_face->glyph->advance.y >> 6;
-		atlas->metrics[i].bitmap_size.x     = ft_face->glyph->bitmap.width;
-		atlas->metrics[i].bitmap_size.y     = ft_face->glyph->bitmap.rows;
-		atlas->metrics[i].bitmap_top_left.x = ft_face->glyph->bitmap_left;
-		atlas->metrics[i].bitmap_top_left.y = ft_face->glyph->bitmap_top;
+		atlas->metrics[i].advance.x         = (float)( ft_face->glyph->advance.x >> 6 );
+		atlas->metrics[i].advance.y         = (float)( ft_face->glyph->advance.y >> 6 );
+		atlas->metrics[i].bitmap_size.x     = (float)ft_face->glyph->bitmap.width;
+		atlas->metrics[i].bitmap_size.y     = (float)ft_face->glyph->bitmap.rows;
+		atlas->metrics[i].bitmap_top_left.x = (float)ft_face->glyph->bitmap_left;
+		atlas->metrics[i].bitmap_top_left.y = (float)ft_face->glyph->bitmap_top;
 		atlas->metrics[i].tex_off_x         = (float)x / atlas->width;
 
 		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );

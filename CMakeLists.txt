@@ -13,7 +13,9 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS On )
 set( CMAKE_CXX_STANDARD 20 )
 
 set( ED_SRCS
+	code/buffer.cc
 	code/draw_gl.cc
+	code/editor.cc
 	code/font.cc
 	code/main.cc
 	code/util.cc

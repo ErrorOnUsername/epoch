@@ -46,7 +46,6 @@ WindowResult window_init( int width, int height, char const* title )
 
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-	glEnable( GL_DEPTH_TEST );
 
 	glfwSwapInterval( 1 );
 	glViewport( 0, 0, width, height );
