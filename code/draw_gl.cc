@@ -231,13 +231,6 @@ void immediate_flush()
 
 static void immediate_push_textured_rect( Vec3 pos, Vec2 size, Vec3 color, Vec2 uv_bottom_left, Vec2 uv_top_right, int texture_slot )
 {
-	Vec2 scale = window_get_scale();
-
-	pos.x *= scale.x;
-	pos.y *= scale.y;
-	size.x *= scale.x;
-	size.y *= scale.y;
-
 	s_batch_quad_pool[s_quad_push_idx + 0].position     = { pos.x, pos.y, pos.z };
 	s_batch_quad_pool[s_quad_push_idx + 0].uv           = { uv_bottom_left.x, uv_bottom_left.y };
 	s_batch_quad_pool[s_quad_push_idx + 0].color        = { color.r, color.g, color.b };
@@ -276,6 +269,7 @@ void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 
 void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 {
+	Vec3 writing_pos = pos;
 	Vec2 shifted_pos;
 	Vec2 bottom_left;
 	Vec2 top_right;
@@ -283,7 +277,19 @@ void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 
 	while ( *text )
 	{
-		char c = *text;
+		char c = *( text++ );
+		if ( c == '\n' )
+		{
+			writing_pos.x = pos.x;
+			writing_pos.y -= 18.0f;
+			continue;
+		}
+		else if ( c == '\t' )
+		{
+			writing_pos.x += 9.0f * 4;
+			continue;
+		}
+
 		if ( c < 32 || c > 126 )
 		{
 			c = '?'; // TODO: Support non-ASCII characters
@@ -293,11 +299,11 @@ void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 		size = metric.bitmap_size;
 		size.y *= -1;
 
-		shifted_pos.x = pos.x + metric.bitmap_top_left.x;
-		shifted_pos.y = -pos.y - metric.bitmap_top_left.y;
+		shifted_pos.x = writing_pos.x + metric.bitmap_top_left.x;
+		shifted_pos.y = -writing_pos.y - metric.bitmap_top_left.y;
 
-		pos.x += metric.advance.x;
-		pos.y += metric.advance.y;
+		writing_pos.x += metric.advance.x;
+		writing_pos.y += metric.advance.y;
 
 		bottom_left = Vec2 { metric.tex_off_x, 0.0f };
 		top_right.x = bottom_left.x + ( metric.bitmap_size.x / (float)s_main_atlas.width );
@@ -310,8 +316,6 @@ void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 			bottom_left,
 			top_right,
 			1 );
-
-		text++;
 	}
 }
 

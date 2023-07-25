@@ -12,6 +12,7 @@
 static GLFWwindow* s_window = nullptr;
 static int         s_width  = 0;
 static int         s_height = 0;
+static Vec2        s_window_scale;
 
 
 WindowResult window_init( int width, int height, char const* title )
@@ -49,6 +50,8 @@ WindowResult window_init( int width, int height, char const* title )
 
 	glfwSwapInterval( 1 );
 	glViewport( 0, 0, width, height );
+
+	glfwGetWindowContentScale( s_window, &s_window_scale.x, &s_window_scale.y );
 
 	return WindowResult_Success;
 }
@@ -90,7 +93,7 @@ float window_get_width()
 	int width = 1;
 	glfwGetFramebufferSize( s_window, &width, nullptr );
 
-	return (float)width;
+	return (float)width / s_window_scale.x;
 }
 
 float window_get_height()
@@ -98,16 +101,7 @@ float window_get_height()
 	int height = 1;
 	glfwGetFramebufferSize( s_window, nullptr, &height );
 
-	return (float)height;
-}
-
-
-Vec2 window_get_scale()
-{
-	float xscale, yscale;
-	glfwGetWindowContentScale( s_window, &xscale, &yscale );
-
-	return { xscale, yscale };
+	return (float)height / s_window_scale.y;
 }
 
 

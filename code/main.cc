@@ -39,7 +39,7 @@ int main()
 		// Draw literally everything lol
 		immediate_begin( window_get_width(), window_get_height() );
 
-		immediate_push_text( { 30.0f, 500.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, "yo, wus good mah bois" );
+		immediate_push_text( { 30.0f, window_get_height() - 30.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, s_editor.focused_buffer->contents.c_str() );
 
 		immediate_flush();
 
