@@ -1,18 +1,18 @@
 #pragma once
+#include <string>
+#include <vector>
 
 #include "buffer.hh"
 
 
 struct Editor
 {
-	size_t  active_buffer_count;
-	Buffer* active_buffers;
-	Buffer* focused_buffer;
+	std::vector<Buffer> active_buffers;
+	Buffer*             focused_buffer;
 };
 
 
-void editor_init( Editor* editor );
-void editor_deinit( Editor* editor );
+void editor_render( Editor* editor );
 
-bool open_buffer( Editor* editor, char const* path );
+bool open_buffer( Editor* editor, std::string const& path );
 

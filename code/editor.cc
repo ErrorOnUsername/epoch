@@ -2,41 +2,22 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "draw_gl.hh"
+#include "window.hh"
 
-void editor_init( Editor* editor )
+
+void editor_render( Editor* editor )
 {
-	if ( !editor ) return;
-
-	editor->active_buffers      = nullptr;
-	editor->active_buffer_count = 0;
-	editor->focused_buffer      = nullptr;
+	immediate_push_text( { 30.0f, window_get_height() - 30.0f, 0.0f }, { 1.0f, 0.5f, 0.02f }, editor->focused_buffer->contents.c_str() );
 }
 
 
-void editor_deinit( Editor* editor )
-{
-	if ( !editor || !editor->active_buffers ) return;
-
-	for ( size_t i = 0; i < editor->active_buffer_count; i++ )
-	{
-		destory_buffer( &editor->active_buffers[i] );
-	}
-
-	free( (void*)editor->active_buffers );
-
-	editor->active_buffers      = nullptr;
-	editor->active_buffer_count = 0;
-	editor->focused_buffer      = nullptr;
-}
-
-
-bool open_buffer( Editor* editor, char const* path )
+bool open_buffer( Editor* editor, std::string const& path )
 {
 	// First look and see if we actually need to create a
 	// new buffer or if we've already opened it
 
-	size_t path_len = strlen( path );
-	for ( size_t i = 0; i < editor->active_buffer_count; i++ )
+	for ( size_t i = 0; i < editor->active_buffers.size(); i++ )
 	{
 		// FIXME: This doesn't work if the file names are loaded throught
 		//        weird redundant directory names.
@@ -54,13 +35,10 @@ bool open_buffer( Editor* editor, char const* path )
 		//        and manually removing the '.' and '..' refs should be fine.
 
 		Buffer* other_buffer = &editor->active_buffers[i];
-		size_t other_len = strlen( other_buffer->name );
-
-		if ( path_len != other_len ) continue;
 
 		// TODO: Figure out how to handle case-insensitive
 		//       filesystems (i.e. APFS and NTFS)
-		if ( strncmp( path, other_buffer->name, path_len ) == 0 )
+		if ( path == other_buffer->name )
 		{
 			editor->focused_buffer = other_buffer;
 			return true;
@@ -72,22 +50,8 @@ bool open_buffer( Editor* editor, char const* path )
 	bool created_successfully = create_buffer( &new_buffer, path );
 	if ( !created_successfully ) return false;
 
-	{
-		Buffer* new_buffers = (Buffer*)malloc( sizeof( Buffer ) * ( editor->active_buffer_count + 1 ) );
-		new ( &new_buffers[editor->active_buffer_count].contents ) std::string();
-
-		if ( editor->active_buffers )
-		{
-			memcpy( (void*)new_buffers, (void*)editor->active_buffers, sizeof( Buffer ) * editor->active_buffer_count );
-			free( (void*)editor->active_buffers );
-		}
-
-		editor->active_buffers = new_buffers;
-	}
-
-	editor->active_buffers[editor->active_buffer_count] = new_buffer;
-	editor->active_buffer_count++;
-	editor->focused_buffer = &editor->active_buffers[editor->active_buffer_count - 1];
+	editor->active_buffers.push_back( new_buffer );
+	editor->focused_buffer = &editor->active_buffers.back();
 
 	return true;
 }

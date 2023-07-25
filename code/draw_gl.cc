@@ -286,7 +286,7 @@ void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 		}
 		else if ( c == '\t' )
 		{
-			writing_pos.x += 9.0f * 4;
+			writing_pos.x += 4.0f * s_main_atlas.metrics[' '].advance.x;
 			continue;
 		}
 

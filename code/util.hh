@@ -42,4 +42,5 @@ struct Vec2
 	};
 };
 
+
 char const* read_entire_file( char const* path );
