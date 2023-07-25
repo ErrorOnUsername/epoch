@@ -8,7 +8,7 @@
 
 void editor_render( Editor* editor )
 {
-	immediate_push_text( { 30.0f, window_get_height() - 30.0f, 0.0f }, { 1.0f, 0.5f, 0.02f }, editor->focused_buffer->contents.c_str() );
+	render_buffer( editor->focused_buffer );
 }
 
 

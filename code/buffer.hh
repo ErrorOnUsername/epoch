@@ -25,3 +25,7 @@ struct Buffer
 bool create_buffer( Buffer* buffer, std::string const& path );
 void destory_buffer( Buffer* buffer );
 
+void render_buffer( Buffer* buffer );
+
+void tokenize_buffer( Buffer* buffer );
+

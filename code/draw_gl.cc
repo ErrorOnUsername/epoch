@@ -267,7 +267,7 @@ void immediate_push_rect( Vec3 pos, Vec2 size, Vec3 color )
 }
 
 
-void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
+void immediate_push_text( Vec3 pos, Vec3 color, char const* text, size_t len )
 {
 	Vec3 writing_pos = pos;
 	Vec2 shifted_pos;
@@ -275,9 +275,9 @@ void immediate_push_text( Vec3 pos, Vec3 color, char const* text )
 	Vec2 top_right;
 	Vec2 size;
 
-	while ( *text )
+	for ( size_t i = 0; i < len; i++ )
 	{
-		char c = *( text++ );
+		char c = text[i];
 		if ( c == '\n' )
 		{
 			writing_pos.x = pos.x;
